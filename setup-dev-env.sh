@@ -5,24 +5,6 @@
 
 set -e
 
-# Function to print help message
-print_help() {
-    echo "Usage: setup-dev-env.sh [OPTIONS]"
-    echo "Options:"
-    echo "  --help          Display this help message"
-    echo "  -h              Display this help message"
-    echo "  -y              Use non-interactive mode"
-    echo "  -v              Enable debug outputs"
-    echo "  --no-nvidia     Disable installation of the NVIDIA-related roles ('cuda' and 'tensorrt')"
-    echo "  --no-cuda-drivers Disable installation of 'cuda-drivers' in the role 'cuda'"
-    echo "  --runtime       Disable installation dev package of role 'cuda' and 'tensorrt'"
-    echo "  --data-dir      Set data directory (default: $HOME/autoware_data)"
-    echo "  --download-artifacts"
-    echo "                  Download artifacts"
-    echo "  --module        Specify the module (default: all)"
-    echo ""
-}
-
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
 
 # Parse arguments
@@ -31,10 +13,6 @@ option_data_dir="$HOME/autoware_data"
 
 while [ "$1" != "" ]; do
     case "$1" in
-    --help | -h)
-        print_help
-        exit 1
-        ;;
     -y)
         # Use non-interactive mode.
         option_yes=true
@@ -63,10 +41,6 @@ while [ "$1" != "" ]; do
     --download-artifacts)
         # Set download artifacts option
         option_download_artifacts=true
-        ;;
-    --module)
-        option_module="$2"
-        shift
         ;;
     *)
         args+=("$1")
@@ -120,31 +94,20 @@ fi
 
 # Check installation of dev package
 if [ "$option_runtime" = "true" ]; then
-    ansible_args+=("--extra-vars" "ros2_installation_type=ros-base") # ROS installation type, default "desktop"
-    ansible_args+=("--extra-vars" "install_devel=N")
+    ansible_args+=("--extra-vars" "tensorrt_install_devel=false")
+    # ROS installation type, default "desktop"
+    ansible_args+=("--extra-vars" "ros2_installation_type=ros-base")
 else
-    ansible_args+=("--extra-vars" "install_devel=y")
+    ansible_args+=("--extra-vars" "tensorrt_install_devel=true")
 fi
 
 # Check downloading artifacts
-if [ "$target_playbook" = "autoware.dev_env.openadkit" ]; then
-    if [ "$option_download_artifacts" = "true" ]; then
-        echo -e "\e[36mArtifacts will be downloaded to $option_data_dir\e[m"
-        ansible_args+=("--extra-vars" "prompt_download_artifacts=y")
-    else
-        ansible_args+=("--extra-vars" "prompt_download_artifacts=N")
-    fi
-elif [ "$option_yes" = "true" ] || [ "$option_download_artifacts" = "true" ]; then
+if [ "$option_yes" = "true" ] || [ "$option_download_artifacts" = "true" ]; then
     echo -e "\e[36mArtifacts will be downloaded to $option_data_dir\e[m"
     ansible_args+=("--extra-vars" "prompt_download_artifacts=y")
 fi
 
 ansible_args+=("--extra-vars" "data_dir=$option_data_dir")
-
-# Check module option
-if [ "$option_module" != "" ]; then
-    ansible_args+=("--extra-vars" "module=$option_module")
-fi
 
 # Load env
 source "$SCRIPT_DIR/amd64.env"

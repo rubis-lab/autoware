@@ -10,7 +10,7 @@
 build/
 install/
 log/
-/src/
+# /src/
 
 # Python
 *.pyc
@@ -23,6 +23,3 @@ capture/
 
 # CodeChecker
 .codechecker/
-
-# Node.js
-node_modules/

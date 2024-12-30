@@ -1,0 +1,113 @@
+<?xml version="1.0"?>
+<launch>
+
+<!-- 이거 아래 4개 바꿔 -->
+
+  <arg name="input/rois0" default="rois0"/>
+  <arg name="input/camera_info0" default="/sensing/camera/traffic_light/camera_info"/>
+  <arg name="input/clusters" default="/perception/object_recognition/detection/clustering/clusters"/>
+  <arg name="input/image0" default="/sensing/camera/traffic_light/image_raw"/>
+  <arg name="data_path" default="$(env HOME)/autoware_data" description="packages data and artifacts directory path"/>
+
+
+  <arg name="output/objects" default="objects"/>
+
+  <!-- <arg name="input/pointcloud"/> -->
+  <arg name="input_pointcloud" default="/sensor/lidar/front" description="The topic will be used in the localization util module"/>
+  <arg name="input/obstacle_segmentation/pointcloud" default="/perception/obstacle_segmentation/pointcloud"/>
+  <arg name="container_name" default="pointcloud_container"/>
+  <arg name="lidar_detection_model" default="centerpoint" description="options: `centerpoint`, `apollo`, `clustering`"/>
+  <arg name="lidar_detection_score_threshold" default="0.35"/>
+  <arg name="use_object_filter" default="true" description="use object filter"/>
+  <arg name="use_pointcloud_container" default="false" description="use pointcloud container for detection preprocessor"/>
+  <arg name="use_validator" default="true" description="use obstacle_pointcloud based validator"/>
+  <arg name="remove_unknown" default="true"/>
+  <arg name="fusion_distance" default="100.0"/>
+  <arg name="trust_object_distance" default="100.0"/>
+  <arg name="use_roi_based_cluster" default="true"/>
+
+  <arg name="centerpoint_model_name" default="centerpoint_tiny"/>
+  <arg name="centerpoint_model_path" default="$(var data_path)/lidar_centerpoint"/>
+  <arg name="lidar_model_param_path" default="$(find-pkg-share lidar_centerpoint)/config"/>
+  <arg name="objects_validation_method" default="obstacle_pointcloud"/>
+  <arg name="objects_filter_method" default="lanelet_filter"/>
+  <arg name="object_recognition_detection_object_merger_data_association_matrix_param_path" default="$(find-pkg-share object_merger)/config/data_association_matrix.param.yaml"/>
+  <arg name="object_recognition_detection_object_merger_distance_threshold_list_path" default="$(find-pkg-share object_merger)/config/overlapped_judge.param.yaml"/>
+  <arg name="score_threshold" default="0.35"/>
+
+  <!-- Camera parameters -->
+  <arg name="image_raw0" default="/sensing/camera/traffic_light/image_raw" description="image raw topic name"/>
+  <arg name="camera_info0" default="/sensing/camera/traffic_light/camera_info" description="camera info topic name"/>
+  <arg name="detection_rois0" default="/perception/object_recognition/detection/rois0" description="detection rois output topic name"/>
+  <arg name="image_number" default="1" description="choose image raw number(1-8)"/>
+
+  <!-- Jetson AGX -->
+  <!-- <include file="$(find-pkg-share tensorrt_yolo)/launch/yolo.launch.xml">
+    <arg name="image_raw0" value="$(var image_raw0)"/>
+    <arg name="image_number" value="$(var image_number)"/>
+    <arg name="output_topic" value="$(var detection_rois0)"/>
+  </include> -->
+
+  <!-- Tensorrt yolox-->
+  <include file="$(find-pkg-share tensorrt_yolox)/launch/yolox_tiny.launch.xml">
+    <arg name="input/image" value="$(var image_raw0)"/>
+    <arg name="image_number" value="$(var image_number)"/>
+    <arg name="output/objects" value="$(var detection_rois0)"/>
+    <arg name="score_threshold" value="$(var score_threshold)"/>
+  </include>
+
+  <!-- roi based clustering -->
+  <!-- <group>
+    <include file="$(find-pkg-share image_projection_based_fusion)/launch/roi_pointcloud_fusion.launch.xml" if="$(var use_roi_based_cluster)">
+      <arg name="input/camera_info0" value="$(var camera_info0)"/>
+      <arg name="input/rois0" value="$(var detection_rois0)"/>
+      <arg name="input/rois_number" value="$(var image_number)"/>
+      <arg name="input/image0" value="$(var image_raw0)"/>
+      <arg name="input/pointcloud" value="/perception/object_recognition/detection/pointcloud_map_filtered/pointcloud"/>
+      <arg name="output_clusters" value="roi_cluster/clusters"/>
+    </include>
+  </group> -->
+
+  <!-- simple_cluster_merger -->
+  <!-- <group>
+      <include file="$(find-pkg-share cluster_merger)/launch/cluster_merger.launch.xml" if="$(var use_roi_based_cluster)">
+      <arg name="input/cluster0" value="/perception/object_recognition/detection/clustering/clusters"/>
+      <arg name="input/cluster1" value="roi_cluster/clusters"/>
+      <arg name="output/clusters" value="clusters"/>
+      </include>
+  </group> -->
+
+
+  <group>
+    <let name="input/clustering" value="/perception/object_recognition/detection/clustering/clusters"/>
+    
+    <include file="$(find-pkg-share image_projection_based_fusion)/launch/roi_cluster_fusion.launch.xml">
+      <arg name="input/camera_info0" value="$(var camera_info0)"/>
+      <arg name="input/rois0" value="$(var detection_rois0)"/>
+      <arg name="input/rois_number" value="$(var image_number)"/>
+      <arg name="input/clusters" value="$(var input/clustering)"/>
+      <arg name="input/image0" value="$(var image_raw0)"/>
+      <arg name="output/clusters" value="yolo/clusters"/>
+      <arg name="remove_unknown" value="$(var remove_unknown)"/>
+      <arg name="fusion_distance" value="$(var fusion_distance)"/>
+      <arg name="trust_object_distance" value="$(var trust_object_distance)"/>
+    </include>
+  </group>
+
+
+  <!-- Shape Estimation-->
+  <group>
+    <include file="$(find-pkg-share shape_estimation)/launch/shape_estimation.launch.xml">
+      <arg name="input/objects" value="yolo/clusters"/>
+      <arg name="output/objects" value="yolo/objects_with_feature"/>
+    </include>
+  </group>
+
+  <group>
+    <include file="$(find-pkg-share detected_object_feature_remover)/launch/detected_object_feature_remover.launch.xml">
+      <arg name="input" value="yolo/objects_with_feature"/>
+      <arg name="output" value="/perception/object_recognition/detection/camera_lidar_fusion/objects"/>
+    </include>
+  </group>
+
+</launch>
