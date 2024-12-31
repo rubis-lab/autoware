@@ -10,6 +10,7 @@
 build/
 install/
 log/
+!src/universe/external/eagleye/eagleye_rt/log/
 # /src/
 
 # Python
