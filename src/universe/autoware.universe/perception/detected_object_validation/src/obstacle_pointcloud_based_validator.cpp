@@ -325,7 +325,7 @@ void ObstaclePointCloudBasedValidator::onObjectsAndObstaclePointCloud(
     return;
   }
   if (!validator_->setKdtreeInputCloud(input_obstacle_pointcloud)) {
-    RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 5, "cannot receive pointcloud");
+    // RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 5, "cannot receive pointcloud");
     return;
   }
 

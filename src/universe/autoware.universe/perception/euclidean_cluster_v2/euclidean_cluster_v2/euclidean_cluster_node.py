@@ -12,7 +12,7 @@ class EuclideanClusterNode(Node):
         # Define QoS profile to handle incompatible QoS settings
         qos_profile = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
-            depth=10
+            depth=5
         )
 
         # Subscribers
@@ -34,7 +34,7 @@ class EuclideanClusterNode(Node):
         self.publisher_clusters = self.create_publisher(
             DetectedObjectsWithFeature,
             '/perception/object_recognition/detection/clustering/clusters',
-            10
+            1
         )
 
         # Timer to publish at 20Hz
