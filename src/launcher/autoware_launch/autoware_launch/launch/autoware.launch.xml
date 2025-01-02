@@ -99,6 +99,10 @@
       <arg name="data_path" value="$(var data_path)"/>
     </include>
   </group>
+  <group if="$(eval &quot;'$(var perception_mode)'=='camera_lidar_fusion'&quot;)">
+    <include file="$(find-pkg-share autoware_launch)/launch/camera_perception.launch.xml">
+    </include>
+  </group>
 
   <!-- Planning -->
   <group if="$(var launch_planning)">
