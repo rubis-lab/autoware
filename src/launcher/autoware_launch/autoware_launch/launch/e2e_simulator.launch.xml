@@ -85,4 +85,9 @@
           args="0 0 0 0 0 0 1 base_link lidar_front"/>
     </group>
   </group>
+
+  <group if="$(eval &quot;'$(var perception_mode)'=='camera_lidar_fusion'&quot;)">
+    <include file="$(find-pkg-share autoware_launch)/launch/camera_perception.launch.xml">
+    </include>
+  </group>
 </launch>
